@@ -41,11 +41,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq unzip
 
-      - name: Cleanup Disk Space
+      - name: Cleanup Disk Space Before Build
         run: |
+          echo "Cleaning up Docker and system files..."
           sudo apt-get clean
           sudo rm -rf /var/lib/apt/lists/*
-          docker system prune -af
+          docker system prune -af --volumes
           df -h
 
       - name: Install GCC
@@ -69,7 +70,11 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "Cleaning up old Docker images before build..."
+          docker system prune -af --volumes
+          df -h
+          echo "Building Docker image..."
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -91,6 +96,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Cleanup Disk Space Before Deployment
+        run: |
+          echo "Removing old containers and images before pulling the latest one..."
+          docker stop $(docker ps -aq) || true
+          docker rm $(docker ps -aq) || true
+          docker rmi $(docker images -q) || true
+          docker system prune -af --volumes
+          df -h
+
       - name: Pull latest images
         run: |
          docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
@@ -101,4 +115,4 @@ jobs:
 
       - name: Clean previous images and containers
         run: |
-         docker system prune -f
+         docker system prune -af --volumes
