@@ -19,30 +19,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install GCC
-        run: sudo apt-get update && sudo apt-get install -y gcc
-
-      - name: Lint code
-        run: echo "Linting repository"
-
-      - name: Run unit tests
-        run: echo "Running unit tests"
-
-  build-and-push-ecr-image:
-    name: Continuous Delivery
-    needs: integration
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      
-      - name: Set up Python
+      - name: Install Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-
-      - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential
 
       - name: Install dependencies
         run: |
@@ -50,16 +30,24 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      - name: Run tests
-        run: pytest tests/
+      - name: Lint code
+        run: echo "Linting repository"
+
+      - name: Run unit tests
+        run: pytest
+
+  build-and-push-ecr-image:
+    name: Continuous Delivery
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
       - name: Install Utilities
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip
-
-      - name: Install GCC
-        run: sudo apt-get install -y gcc
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -82,7 +70,7 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
+          
   Continuous-Deployment:
     needs: build-and-push-ecr-image
     runs-on: self-hosted
@@ -100,19 +88,19 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
+      
       - name: Pull latest images
         run: |
-         docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
-
+          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+         
       # - name: Stop and remove container if running
       #   run: |
-      #    docker ps -q --filter "name=sumtext" | grep -q . && docker stop sumtext && docker rm -fv sumtext 
-
+      #    docker ps -q --filter "name=sumtext" | grep -q . && docker stop sumtext && docker rm -fv sumtext
+       
       - name: Run Docker Image to serve users
         run: |
-         docker run -d -p 8080:8080 --name=sumtext -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secre[...]
+          docker run -d -p 8080:8080 --name=sumtext -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secrets.AWS_REGION }}'  ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
       - name: Clean previous images and containers
         run: |
-         docker system prune -f
+          docker system prune -f
