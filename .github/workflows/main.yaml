@@ -40,6 +40,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip
+
+      - name: Cleanup Disk Space
+        run: |
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          docker system prune -af
+          df -h
+
       - name: Install GCC
         run: sudo apt-get install -y gcc
 
@@ -64,6 +72,7 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
   Continuous-Deployment:
     needs: build-and-push-ecr-image
     runs-on: self-hosted
@@ -85,13 +94,11 @@ jobs:
       - name: Pull latest images
         run: |
          docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
-      # - name: Stop and remove container if running
-      #   run: |
-      #    docker ps -q --filter "name=sumtext" | grep -q . && docker stop sumtext && docker rm -fv sumtext 
 
       - name: Run Docker Image to serve users
         run: |
          docker run -d -p 8080:8080 --name=sumtext -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secrets.AWS_REGION }}' ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+
       - name: Clean previous images and containers
         run: |
          docker system prune -f
