@@ -22,7 +22,7 @@ async def index(request: Request):
 async def training():
     try:
         os.system("python main.py")
-        return {"message": "Training successful!!"}
+        return {"message": "Training successfully Done!!"}
     except Exception as e:
         return {"message": f"Error occurred: {e}"}
 
