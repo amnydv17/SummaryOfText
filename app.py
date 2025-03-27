@@ -40,4 +40,4 @@ async def predict_route(request: Request, body: dict = Body(...)):
         raise HTTPException(status_code=400, detail=f"Error during prediction: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7070)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
