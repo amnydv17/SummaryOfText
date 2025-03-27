@@ -5,7 +5,11 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install pyzstd
+# Install gcc and other necessary build tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install -r requirements.txt
 RUN pip install --upgrade accelerate
 RUN pip uninstall -y transformers accelerate
