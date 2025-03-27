@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Summarization API</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Text Summarization</h1>
+        <div class="form-container">
+            <!-- Left side: Input -->
+            <div class="input-container">
+                <textarea id="text-input" placeholder="Enter text to summarize"></textarea>
+                <button id="summarize-button" type="button">Summarize</button>
+            </div>
+
+            <!-- Right side: Output -->
+            <div class="output-container">
+                <h2>Summary Output</h2>
+                <div id="summary-output" placeholder="Summarized Text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='script.js') }}?t={{ time }}"></script>
+
+</body>
+</html>
